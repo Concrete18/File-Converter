@@ -6,7 +6,7 @@ It currently only finds and converts all **.DDS** files into **.PNG** format.
 ## Setup
 
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## usage

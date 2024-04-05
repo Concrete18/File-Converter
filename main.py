@@ -1,6 +1,20 @@
-import os
+import os, pickle
 from PIL import Image
 from rich.progress import track
+
+
+def store_data(data):
+    with open("convert_pickle", "wb") as file:
+        pickle.dump(data, file)
+
+
+def load_data():
+    file_name = "convert_pickle"
+    if not os.path.exists(file_name):
+        return {}
+    with open(file_name, "rb") as file:
+        data = pickle.load(file)
+        return data
 
 
 def convert_dds_to_png(input_file, output_file):
@@ -8,7 +22,8 @@ def convert_dds_to_png(input_file, output_file):
         image = Image.open(input_file)
         image.save(output_file, "PNG")
         return True
-    except:
+    except Exception as e:
+        print(e)
         return False
 
 
@@ -19,7 +34,7 @@ def find_all_files_by_type(file_type: str) -> list[dict]:
     found_files = []
     for root, _, files in os.walk(".", topdown=False):
         for name in files:
-            if name.endswith(file_type):
+            if name.lower().endswith(file_type):
                 file_path = os.path.join(root, name)
                 found_files.append({"name": name, "path": file_path})
     total = len(found_files)
@@ -27,8 +42,8 @@ def find_all_files_by_type(file_type: str) -> list[dict]:
     return found_files
 
 
-def is_plural(list):
-    return "s" if list > 1 else ""
+def is_plural(length: int) -> str:
+    return "s" if length > 1 else ""
 
 
 def convert_all_dds_files(destination_folder):
@@ -44,36 +59,41 @@ def convert_all_dds_files(destination_folder):
     if not os.path.exists(destination_folder):
         os.mkdir(destination_folder)
 
-    print("----------------------------------------------------")
-    total_convers = 0
-    failures = []
-
-    found_files = find_all_files_by_type(target_file_type)
+    existing_data = load_data().get("failed", None)
+    if existing_data:
+        print("Using existing data")
+        found_files = existing_data
+    else:
+        print("Using new data")
+        found_files = find_all_files_by_type(target_file_type)
 
     print()
-    desc = "Converting Files"
-    for file in track(found_files, description=desc):
+    data = {"converted": [], "failed": []}
+    converted = []
+    failures = []
+    for file in track(found_files, description="Converting Files"):
         # skips non .dds files
         if not file["name"].endswith(target_file_type):
             continue
         # updates name and path to new file type
         new_name = file["name"].replace(target_file_type, final_file_type)
         new_file_path = os.path.join(destination_folder, new_name)
-
+        # adds to file if it succeeded and if it failed
         if convert_dds_to_png(file["path"], new_file_path):
-            total_convers += 1
+            converted.append(file)
         else:
-            failures.append(file["path"])
+            failures.append(file)
 
-    if total_convers:
-        print(f"\nSuccessfuly converted {total_convers} file{is_plural(total_convers)}")
+    if converted:
+        total = len(converted)
+        print(f"\nSuccessfuly converted {len(converted)} file{is_plural(total)}")
+        data["converted"] = converted
     else:
         print(f"\nNo files were found that could be converted")
 
     if failures:
-        print(f"\nFailed to convert {len(failures)} files at the following paths\n")
-        for n, path in enumerate(failures):
-            print(f"{n+1}: {path}")
+        data["failed"] = failures
+    store_data(data)
 
 
 if __name__ == "__main__":
