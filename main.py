@@ -23,7 +23,7 @@ def convert_dds_to_png(input_file, output_file):
         image.save(output_file, "PNG")
         return True
     except Exception as e:
-        print(e)
+        print(e)  # comment this line out if there are too many errors
         return False
 
 
@@ -37,8 +37,6 @@ def find_all_files_by_type(file_type: str) -> list[dict]:
             if name.lower().endswith(file_type):
                 file_path = os.path.join(root, name)
                 found_files.append({"name": name, "path": file_path})
-    total = len(found_files)
-    print(f"Found {total} file{is_plural(total)} with {file_type} type")
     return found_files
 
 
@@ -61,11 +59,16 @@ def convert_all_dds_files(destination_folder):
 
     existing_data = load_data().get("failed", None)
     if existing_data:
-        print("Using existing data")
+        total = len(existing_data)
+        print(
+            f"\nFound {total} file{is_plural(total)} that failed to be converted previously",
+            "\nRetrying now",
+        )
         found_files = existing_data
     else:
-        print("Using new data")
         found_files = find_all_files_by_type(target_file_type)
+        total = len(found_files)
+        print(f"\nFound {total} file{is_plural(total)} with {target_file_type} type")
 
     print()
     data = {"converted": [], "failed": []}
