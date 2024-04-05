@@ -1,4 +1,4 @@
-import os, pickle
+import os, pickle, random
 from PIL import Image
 from rich.progress import track
 
@@ -80,6 +80,7 @@ def convert_all_dds_files(destination_folder):
             continue
         # updates name and path to new file type
         new_name = file["name"].replace(target_file_type, final_file_type)
+        new_name += f"-{random.randint(1, 999_999)}"
         new_file_path = os.path.join(destination_folder, new_name)
         # adds to file if it succeeded and if it failed
         if convert_dds_to_png(file["path"], new_file_path):
@@ -89,14 +90,16 @@ def convert_all_dds_files(destination_folder):
 
     if converted:
         total = len(converted)
-        print(f"\nSuccessfuly converted {len(converted)} file{is_plural(total)}")
         data["converted"] = converted
+        print(f"\nSuccessfuly converted {len(converted)} file{is_plural(total)}")
     else:
         print(f"\nNo files were found that could be converted")
 
     if failures:
         data["failed"] = failures
-    store_data(data)
+
+    if converted and failures:
+        store_data(data)
 
 
 if __name__ == "__main__":
